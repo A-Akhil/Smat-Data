@@ -15,38 +15,47 @@ MIN_TEXT_CHUNK_CHARS = 30
 
 
 def _grid_to_markdown(grid):
+    """Render every row as a table body row.
+
+    grid[0] is NOT a real header — these filings' actual period headers have
+    no ruling lines, so pdfplumber's table detector already excludes them
+    from the grid entirely (recovered separately as header_preamble, see
+    parser.py). grid[0] is just the first data row (sometimes a value row,
+    sometimes a blank section label like "ASSETS:"); treating it as a header
+    would both drop it as data and falsely imply it names the columns.
+    """
     if not grid:
         return ""
-    header, *rows = grid
+    num_cols = max(len(row) for row in grid)
     lines = [
-        "| " + " | ".join(header) + " |",
-        "| " + " | ".join(["---"] * len(header)) + " |",
+        "| " + " | ".join([""] * num_cols) + " |",
+        "| " + " | ".join(["---"] * num_cols) + " |",
     ]
-    for row in rows:
-        row = row + [""] * (len(header) - len(row))
-        lines.append("| " + " | ".join(row[: len(header)]) + " |")
+    for row in grid:
+        row = row + [""] * (num_cols - len(row))
+        lines.append("| " + " | ".join(row[:num_cols]) + " |")
     return "\n".join(lines)
 
 
 def _grid_to_sentences(grid, title):
-    if len(grid) < 2:
-        return ""
-    header, *rows = grid
+    """One sentence per row: '<label> — <value>, <value>, ...'.
+
+    No header row to pair against (see _grid_to_markdown) — the recovered
+    header_preamble text, prepended once for the whole table by the caller,
+    carries the column meaning instead. Lone '$' cells (a currency symbol
+    split into its own grid cell) are dropped as noise.
+    """
     prefix = f"{title}: " if title else ""
     sentences = []
-    for row in rows:
+    for row in grid:
         if not row or not row[0]:
             continue
         label = row[0]
-        pairs = [
-            f"{h.strip()} = {v.strip()}"
-            for h, v in zip(header[1:], row[1:])
-            if h.strip() and v.strip()
-        ]
-        if pairs:
-            sentences.append(f"{prefix}{label} — " + "; ".join(pairs))
+        values = [cell for cell in row[1:] if cell and cell != "$"]
+        if values:
+            sentences.append(f"{prefix}{label} — " + ", ".join(values))
         else:
-            # Header/section row with no aligned values (e.g. "Cost of sales:").
+            # Section label with no values on its own row (e.g. "Cost of sales:").
             sentences.append(f"{prefix}{label}")
     return "\n".join(sentences)
 
