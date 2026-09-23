@@ -1,0 +1,12 @@
+.git
+.env
+rough_note.md
+PROPOSAL.md
+design_writeup.md
+design_writeup.tex
+design_writeup.pdf
+*.pdf
+__pycache__
+*.pyc
+db.sqlite3
+.claude
