@@ -85,27 +85,37 @@ def parse_pdf(path):
                     header_preamble.insert(0, txt)
                     cursor = top
 
-                # Prefer the nearest ALL-CAPS section heading above the table
-                # (10-Q headings like "CONDENSED CONSOLIDATED STATEMENTS OF
-                # OPERATIONS" are set in caps) over the literal nearest line,
-                # which is sometimes just a numeric row that leaked past the
-                # table's detected bounding box (e.g. "Net income $ 19,442 ...").
+                # Prefer the nearest section heading above the table: either
+                # an ALL-CAPS statement title ("CONDENSED CONSOLIDATED
+                # STATEMENTS OF OPERATIONS") or a "Note N – ..." note heading
+                # (mixed case, so the caps check alone would miss it). There
+                # is deliberately no further fallback beyond these two
+                # patterns: an earlier "nearest label-like line" fallback
+                # would, for notes without a nearby heading, often grab that
+                # note's own local copy of the recovered header_preamble
+                # text above — and since content_text repeats {title} on
+                # every row (see chunker.py), that generic phrase would then
+                # get duplicated across many different tables' chunks,
+                # flooding keyword search with false overlap between
+                # unrelated tables. An empty title is safer than a wrong one.
                 def _is_label_like(text):
                     digits = sum(c.isdigit() for c in text)
                     return digits < max(3, len(text) // 4)
 
-                above = [
-                    (top, text)
-                    for (top, text) in narrative_lines
-                    if text and top < table.bbox[1] and _is_label_like(text)
-                ]
                 def _looks_like_heading(text):
+                    if text.startswith("Note ") and any(sep in text for sep in ("–", "—", "-")):
+                        return True
                     alpha = [c for c in text if c.isalpha()]
                     if len(alpha) < 8:
                         return False
                     upper_ratio = sum(c.isupper() for c in alpha) / len(alpha)
                     return upper_ratio > 0.8
 
+                above = [
+                    (top, text)
+                    for (top, text) in narrative_lines
+                    if text and top < table.bbox[1] and _is_label_like(text)
+                ]
                 title = None
                 for top, text in reversed(above):
                     if table.bbox[1] - top > 400:
@@ -113,9 +123,6 @@ def parse_pdf(path):
                     if _looks_like_heading(text):
                         title = text
                         break
-                if title is None:
-                    nearby = [text for top, text in above if table.bbox[1] - top < 200]
-                    title = nearby[-1] if nearby else None
                 page_tables.append(
                     {"grid": grid, "title": title, "header_preamble": header_preamble}
                 )
