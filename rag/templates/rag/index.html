@@ -15,14 +15,14 @@
       Ask a question about the document's text, tables, or figures.
     </p>
 
-    <form method="post" class="mb-4">
+    <form method="post" class="mb-4" id="ask-form">
       {% csrf_token %}
       <div class="input-group">
         <input
           type="text" name="question" class="form-control" placeholder="e.g. What was total net sales for Q3 2022?"
           value="{{ question }}" required autofocus
         >
-        <button class="btn btn-primary" type="submit">Ask</button>
+        <button class="btn btn-primary" type="submit" id="ask-button">Ask</button>
       </div>
     </form>
 
@@ -30,11 +30,11 @@
       <div class="alert alert-danger">{{ error }}</div>
     {% endif %}
 
-    {% if answer %}
+    {% if answer_html %}
       <div class="card mb-3">
         <div class="card-body">
           <h2 class="h6 text-muted">Answer</h2>
-          <p class="card-text" style="white-space: pre-wrap;">{{ answer }}</p>
+          <div class="card-text">{{ answer_html|safe }}</div>
         </div>
       </div>
     {% endif %}
@@ -65,5 +65,17 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    // Full-page form submit (no AJAX) still benefits from this: it stops a
+    // second click from firing another request while the LLM call (which
+    // can take several seconds) is in flight, and gives visible feedback
+    // instead of the page looking frozen.
+    document.getElementById("ask-form").addEventListener("submit", function () {
+      var button = document.getElementById("ask-button");
+      button.disabled = true;
+      button.innerHTML =
+        '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Asking...';
+    });
+  </script>
 </body>
 </html>
