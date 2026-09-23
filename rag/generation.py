@@ -25,7 +25,7 @@ def build_context(chunks) -> str:
     return "\n\n---\n\n".join(_format_chunk(c) for c in chunks)
 
 
-def answer_question(question: str, top_k: int = 6):
+def answer_question(question: str, top_k: int = 8):
     """Returns (answer_text, source_chunks)."""
     chunks = hybrid_search(question, top_k=top_k)
     if not chunks:
