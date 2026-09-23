@@ -1,0 +1,11 @@
+django
+python-dotenv
+pdfplumber
+pymupdf
+groq
+huggingface_hub
+chromadb
+rank_bm25
+markdown
+xhtml2pdf
+gunicorn

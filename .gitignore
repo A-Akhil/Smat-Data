@@ -1,0 +1,24 @@
+# secrets / local config
+.env
+
+rough_note.md
+PROPOSAL.md
+
+# source data (fetched separately, see README)
+*.pdf
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+
+# Django
+db.sqlite3
+staticfiles/
+media/
+
+# editors / OS
+.DS_Store
+.vscode/
+.idea/
